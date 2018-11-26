@@ -1,0 +1,6 @@
+/dev/hw_random
+/dev/kmem
+/dev/kmsg
+/dev/keychord
+/dev/mtp_usb
+/dev/nq-nci

@@ -1,0 +1,13 @@
+#!/system/bin/bash
+export TOOLS="/data/local/tmp/testrunner/common"
+
+echo "--------------------"
+echo "running socket test"
+echo "--------------------"
+./socket
+if [ $? -ne 0 ]; then
+	echo "[FAIL]"
+else
+	echo "[PASS]"
+fi
+

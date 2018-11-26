@@ -1,0 +1,52 @@
+#Stop Android
+ps  | grep zygote
+if [ $? -eq 0 ]; then
+    echo "Stopping Android FW."
+    stop
+    sleep 2
+  else
+    echo "Framework is not running."
+    fi
+#Android environment settings
+if [ -e /system/build.prop ]; then
+    mount -o rw,remount /
+    if [[ `getenforce` != 'Enforcing' ]];then
+         mkdir -p /bin /tmp
+         cp /system/bin/sh /bin/sh
+    fi
+fi
+# Source this file to setup the test suite environment
+if [ -e '/data/local/tmp/testrunner' ];then
+    export BASEDIR='/data/local/tmp/testrunner'
+    export TOOLS='/data/local/tmp/testrunner/common'
+    export SUITES='/data/local/tmp/testrunner/suites'
+    export CALIBRATION='/data/local/tmp/testrunner/calib.txt'
+    export FTRACE_EVENTS='/data/local/tmp/testrunner/ftrace_events'
+    export PATH=/data/local/tmp/testrunner/suites/stress/testcases/12_stressframework/bin/prebuilt-arm:$PATH;
+fi
+
+if [ -e $TOOLS/bash ];then
+    if [[ `getenforce` != 'Enforcing' ]];then
+       cp $TOOLS/bash /bin/bash
+    fi
+if [ ! -f /ssytem/bin/bash ];then
+    cp $TOOLS/bash /system/bin/bash
+fi
+
+var=$(ls /sys/bus/platform/drivers/msm_watchdog | grep "qcom")
+if [ -d /sys/bus/platform/drivers/msm_watchdog/$var ];then
+    if [ `cat /sys/bus/platform/drivers/msm_watchdog/$var/disable` -eq 0 ];then
+        echo 1 > /sys/bus/platform/drivers/msm_watchdog/$var/disable
+        if [ $? -eq 0 ];then
+            echo "watchdog is disabled"
+        else
+            echo "Watchdog is enabled"
+        fi
+    fi
+fi
+
+echo "do reboot for enabling the Watchdog"
+
+
+#Add test suite configuration
+#source /data/local/tmp/testrunner/schedtest-config

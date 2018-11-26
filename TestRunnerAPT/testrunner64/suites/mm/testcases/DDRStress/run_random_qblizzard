@@ -1,0 +1,81 @@
+#!/system/bin/sh
+source ../../../../init_env
+
+STARTTIME=$(date +%s)
+
+echo "rm -f qblog*.txt"
+rm -f qblog*.txt
+
+repeat_loop=0
+iteration_count=0
+qb_prog=$TOOLS/QBlizzard
+qb_config=-stress_aligned
+qb_startSize=4MB
+qb_endSize=8MB
+qb_totalSize=$qb_endSize
+qb_errorcheck=TRUE
+qb_repeatcnt=0
+qb_samples=1000000
+qb_numThreads=8
+qb_parms="$qb_config -startSize $qb_startSize -endSize $qb_endSize -totalSize $qb_totalSize -errorCheck $qb_errorcheck -repeatCount $qb_repeatcnt -statSamples $qb_samples -numThreads $qb_numThreads"
+
+echo "RUN TEST APPS: " $qb_prog $qb_parms
+
+while true; do
+
+ENDTIME=$(date +%s)
+DTIME=$(($ENDTIME - $STARTTIME))
+SECONDS=$((DTIME % 60))
+MINUTES=$(((DTIME / 60) % 60))
+HOURS=$((DTIME / 3600))
+
+RANDOM=$$$(date +%s)
+qb_numThreads=$((RANDOM % 8))
+qb_parms="$qb_config -startSize $qb_startSize -endSize $qb_endSize -totalSize $qb_totalSize -errorCheck $qb_errorcheck -repeatCount $qb_repeatcnt -statSamples $qb_samples -numThreads $qb_numThreads"
+# echo "TIME SINCE TEST STARTED: $HOURS HOURS $MINUTES MINUTES $SECONDS SECONDS "
+echo ""
+echo "TIME SINCE TEST STARTED: $HOURS HOURS $MINUTES MINUTES $SECONDS SECONDS "
+echo "ITERATIONS : " $iteration_count
+
+odir=`pwd`
+for i in 1
+do
+  if [ ! -f $odir/qblog$i.txt ];then
+    touch $odir/qblog$i.txt
+  fi
+ echo "launch qblizzard instance: $i"
+ $qb_prog  $qb_parms 2>&1 >> $odir/qblog$i.txt &
+done
+
+RANDOM=$$$(date +%s)
+sleep_time=$((RANDOM%120+15))
+echo QBLIZZARD KILLER SLEEPING FOR : $sleep_time seconds
+(sleep $sleep_time; kill $(ps | grep -i qblizzard | awk '{print $2}')) & 
+# Starting background timer to be invoked to kill QBlizzard after the specified time in seconds
+# (sleep 20; kill $(ps | grep -i qblizzard | awk '{print $2}')) & 
+
+while true; do
+  ENDTIME=$(date +%s)
+  DTIME=$(($ENDTIME - $STARTTIME))
+  SECONDS=$((DTIME % 60))
+  MINUTES=$(((DTIME / 60) % 60))
+  HOURS=$((DTIME / 3600))
+  echo "TESTING -->"  $repeat_loop "      TIME $HOURS HOURS $MINUTES MINUTES $SECONDS SECONDS "
+  sleep 3
+  # Break if QBlizzard is not running
+  ps | grep -i qbl || break	#ps | grep -i qbl || exit
+  
+  # If QBlizzard is running then check for any errors in logs, if errors found exit/stop
+  grep -i 'error ' $odir/qb*.txt; case "$?" in "0") echo "!!!!! FOUND ERRORS !!!!!"; exit ;; "1") echo "" ;; *) echo "UNKNOWN MATCH" ;; esac
+  sleep 3
+	repeat_loop=$((repeat_loop+1))
+done
+
+echo ""
+echo ""
+RANDOM=$$$(date +%s)
+relax_time=$((RANDOM%10+10))
+echo RELAXING FOR : $relax_time seconds
+sleep $relax_time	# Relax time in seconds
+iteration_count=$((iteration_count+1))
+done

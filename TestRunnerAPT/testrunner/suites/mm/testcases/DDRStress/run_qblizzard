@@ -1,0 +1,49 @@
+#!/system/bin/sh
+source ../../../../init_env
+
+STARTTIME=$(date +%s)
+
+echo "rm -f qblog*.txt"
+rm -f qblog*.txt
+sleep 1
+
+repeat_loop=0
+
+qb_prog=$TOOLS/QBlizzard
+qb_config=-stress_aligned
+qb_startSize=4MB
+qb_endSize=8MB
+qb_totalSize=$qb_endSize
+qb_errorcheck=TRUE
+qb_repeatcnt=0
+qb_samples=1000000
+qb_numThreads=4
+qb_parms="$qb_config -startSize $qb_startSize -endSize $qb_endSize -totalSize $qb_totalSize -errorCheck $qb_errorcheck -repeatCount $qb_repeatcnt -statSamples $qb_samples -numThreads $qb_numThreads"
+
+echo "run test apps: " $qb_prog $qb_parms
+
+for i in 1
+do
+  odir=`pwd`
+  if [ ! -f $odir/qblog$i.txt ];then
+    touch $odir/qblog$i.txt
+  fi
+ echo "launch qblizzard instance: $i"
+ $qb_prog  $qb_parms 2>&1 >> $odir/qblog$i.txt &
+done
+
+while true; do
+	echo "testing..."  $repeat_loop
+	ENDTIME=$(date +%s)
+	DTIME=$(($ENDTIME - $STARTTIME))
+	SECONDS=$((DTIME % 60))
+	MINUTES=$(((DTIME / 60) % 60))
+	HOURS=$((DTIME / 3600))
+	echo "TIME SINCE QBLIZZARD TEST STARTED: $HOURS HOURS $MINUTES MINUTES $SECONDS SECONDS "
+	echo ""
+	sleep 3
+	ps | grep -i qbl || exit
+	grep -i err qb*.txt
+	sleep 3
+	repeat_loop=$((repeat_loop+1))
+done

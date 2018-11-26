@@ -1,0 +1,57 @@
+#!/system/bin/bash
+# set -x
+SYSCTL="/proc/sys"
+TARGET="${SYSCTL}/kernel/domainname"
+ORIG=$(cat "${TARGET}")
+TEST_STR="Testing sysctl"
+
+. ./common_tests
+
+# Only string sysctls support seeking/appending.
+MAXLEN=65
+
+echo -n "Writing middle of sysctl after unsynchronized seek ... "
+set_test
+dd if="${TEST_FILE}" of="${TARGET}" bs=1 seek=1 2>/dev/null
+if verify "${TARGET}"; then
+	echo "FAIL" >&2
+	rc=1
+else
+	echo "ok"
+fi
+
+
+echo -n "Checking sysctl keeps original string on overflow append ... "
+set_orig
+printf "%0.sA" {1..$((MAXLEN-2))},"B" | \
+	dd of="${TARGET}" bs="${MAXLEN}" 2>/dev/null
+if grep -q B "${TARGET}"; then
+	echo "FAIL" >&2
+	rc=1
+else
+	echo "ok"
+fi
+
+echo -n "Checking sysctl stays NULL terminated on write ... "
+set_orig
+printf "%0.sA" {1..$((MAXLEN-2))},"B" | \
+	dd of="${TARGET}" bs="${MAXLEN}" 2>/dev/null
+if grep -q B "${TARGET}"; then
+	echo "FAIL" >&2
+	rc=1
+else
+	echo "ok"
+fi
+
+echo -n "Checking sysctl stays NULL terminated on overwrite ... "
+set_orig
+printf "%0.sA" {1..$((MAXLEN-2))},"B" | \
+	dd of="${TARGET}" bs="${MAXLEN}" 2>/dev/null
+if grep -q B "${TARGET}"; then
+	echo "FAIL" >&2
+	rc=1
+else
+	echo "ok"
+fi
+
+exit $rc
