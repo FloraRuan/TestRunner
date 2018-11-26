@@ -1,1 +1,0 @@
-cd /data/local/tmp/testrunner;./testrunner --run testrunnerAPT --suite stress --testcase 12_stressframework
